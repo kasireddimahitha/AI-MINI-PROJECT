@@ -1,14 +1,37 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
-import { indexTranscript, retrieveRelevantChunks, clearStore } from "@/utils/vectorStore";
+import { indexTranscript, retrieveRelevantChunks, addChatMessage, getMeetingById } from "@/utils/vectorStore";
 
 export async function POST(req: NextRequest) {
   try {
-    const { transcript, query, history, newTranscript } = await req.json();
+    const { transcript, query, history, newTranscript, meetingId } = await req.json();
 
-    if (!transcript || !query) {
+    if (!query) {
       return NextResponse.json(
-        { error: "Transcript and query are required" },
+        { error: "Query is required" },
+        { status: 400 }
+      );
+    }
+
+    // Allow either transcript or meetingId
+    let currentTranscript = transcript;
+    let currentMeetingId = meetingId;
+
+    if (meetingId && !transcript) {
+      const meeting = getMeetingById(meetingId);
+      if (!meeting) {
+        return NextResponse.json(
+          { error: "Meeting not found" },
+          { status: 404 }
+        );
+      }
+      currentTranscript = meeting.transcript;
+      currentMeetingId = meetingId;
+    }
+
+    if (!currentTranscript) {
+      return NextResponse.json(
+        { error: "Transcript or valid meetingId is required" },
         { status: 400 }
       );
     }
@@ -24,8 +47,9 @@ export async function POST(req: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     // Index the transcript if it's new or changed
-    if (newTranscript || transcript.length > 100) {
-      await indexTranscript(transcript);
+    if (newTranscript || (transcript && transcript.length > 100)) {
+      const id = await indexTranscript(transcript || currentTranscript);
+      currentMeetingId = id;
     }
 
     // Retrieve relevant chunks using efficient text-based search
@@ -63,7 +87,17 @@ Answer the question directly and clearly.
 
     const answer = response.text || "No response generated.";
 
-    return NextResponse.json({ answer, context: relevantChunks });
+    // Save chat messages if meetingId is provided
+    if (currentMeetingId) {
+      addChatMessage(currentMeetingId, "user", query);
+      addChatMessage(currentMeetingId, "assistant", answer);
+    }
+
+    return NextResponse.json({ 
+      answer, 
+      context: relevantChunks,
+      meetingId: currentMeetingId,
+    });
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     return NextResponse.json(

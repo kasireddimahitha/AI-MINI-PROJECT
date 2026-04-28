@@ -3,14 +3,26 @@ import path from "path";
 import fs from "fs";
 import { chunkText, getRelevantChunks } from "./embedding";
 
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
+
 interface StoredTranscript {
   id: string;
+  meetingId: string;
+  meetingTitle: string;
+  transcript: string;
   chunks: Array<{
     id: string;
     text: string;
   }>;
+  chatHistory: ChatMessage[];
   createdAt: number;
+  updatedAt: number;
   wordCount: number;
+  audioSource?: string; // 'uploaded', 'pasted', or 'transcribed'
 }
 
 interface Database {
@@ -62,9 +74,12 @@ function saveDatabase(db: Database): void {
  */
 export async function indexTranscript(
   transcript: string,
-  transcriptId?: string
-): Promise<void> {
-  const id = transcriptId || `transcript_${Date.now()}`;
+  transcriptId?: string,
+  meetingTitle?: string,
+  audioSource?: string
+): Promise<string> {
+  const id = transcriptId || `meeting_${Date.now()}`;
+  const meetingId = `MID-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
   try {
     // Chunk the transcript
@@ -76,12 +91,20 @@ export async function indexTranscript(
       text,
     }));
 
+    const now = Date.now();
+
     // Create transcript object
     const transcriptObj: StoredTranscript = {
       id,
+      meetingId,
+      meetingTitle: meetingTitle || `Meeting ${new Date(now).toLocaleDateString()}`,
+      transcript,
       chunks: chunkObjects,
-      createdAt: Date.now(),
+      chatHistory: [],
+      createdAt: now,
+      updatedAt: now,
       wordCount: transcript.split(/\s+/).length,
+      audioSource: audioSource || 'pasted',
     };
 
     // Save to database
@@ -94,6 +117,7 @@ export async function indexTranscript(
     currentTranscriptId = id;
 
     console.log(`Indexed ${chunks.length} chunks from transcript (${transcriptObj.wordCount} words): ${id}`);
+    return id;
   } catch (error) {
     console.error("Error indexing transcript:", error);
     throw error;
@@ -156,17 +180,106 @@ export async function retrieveRelevantChunks(
  */
 export function getAllTranscripts(): Array<{
   id: string;
+  meetingId: string;
+  meetingTitle: string;
   chunkCount: number;
   wordCount: number;
   createdAt: string;
+  audioSource?: string;
 }> {
   const db = loadDatabase();
-  return Object.values(db.transcripts).map(t => ({
-    id: t.id,
-    chunkCount: t.chunks.length,
-    wordCount: t.wordCount,
-    createdAt: new Date(t.createdAt).toISOString(),
-  }));
+  return Object.values(db.transcripts)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .map(t => ({
+      id: t.id,
+      meetingId: t.meetingId,
+      meetingTitle: t.meetingTitle,
+      chunkCount: t.chunks.length,
+      wordCount: t.wordCount,
+      createdAt: new Date(t.createdAt).toISOString(),
+      audioSource: t.audioSource,
+    }));
+}
+
+/**
+ * Get a specific meeting by ID
+ */
+export function getMeetingById(meetingId: string): {
+  id: string;
+  meetingId: string;
+  meetingTitle: string;
+  transcript: string;
+  chatHistory: ChatMessage[];
+  createdAt: string;
+  audioSource?: string;
+} | null {
+  const db = loadDatabase();
+  const meeting = Object.values(db.transcripts).find(t => t.id === meetingId);
+  
+  if (!meeting) return null;
+
+  return {
+    id: meeting.id,
+    meetingId: meeting.meetingId,
+    meetingTitle: meeting.meetingTitle,
+    transcript: meeting.transcript,
+    chatHistory: meeting.chatHistory,
+    createdAt: new Date(meeting.createdAt).toISOString(),
+    audioSource: meeting.audioSource,
+  };
+}
+
+/**
+ * Add a chat message to a meeting's history
+ */
+export function addChatMessage(
+  meetingId: string,
+  role: "user" | "assistant",
+  content: string
+): boolean {
+  const db = loadDatabase();
+  const meeting = Object.values(db.transcripts).find(t => t.id === meetingId);
+  
+  if (!meeting) return false;
+
+  meeting.chatHistory.push({
+    role,
+    content,
+    timestamp: Date.now(),
+  });
+  
+  meeting.updatedAt = Date.now();
+  saveDatabase(db);
+  return true;
+}
+
+/**
+ * Get chat history for a meeting
+ */
+export function getChatHistory(meetingId: string): ChatMessage[] {
+  const db = loadDatabase();
+  const meeting = Object.values(db.transcripts).find(t => t.id === meetingId);
+  
+  if (!meeting) return [];
+  
+  return meeting.chatHistory;
+}
+
+/**
+ * Delete a meeting by ID
+ */
+export function deleteMeeting(meetingId: string): boolean {
+  const db = loadDatabase();
+  
+  if (!db.transcripts[meetingId]) {
+    return false;
+  }
+  
+  delete db.transcripts[meetingId];
+  saveDatabase(db);
+  
+  console.log(`Deleted meeting: ${meetingId}`);
+  return true;
 }
 
 /**

@@ -11,6 +11,7 @@
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -24,6 +25,28 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.newMeetingBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary), #0d9488);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+}
+
+.newMeetingBtn:hover {
+  opacity: 0.95;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.45);
 }
 
 .headerIcon {
@@ -41,6 +64,140 @@
 
 @media (min-width: 1024px) {
   .main {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+/* Meetings Sidebar */
+.meetingsSidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  height: max-content;
+  position: sticky;
+  top: 2rem;
+  gap: 1rem;
+  max-height: calc(100vh - 8rem);
+}
+
+.meetingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.meetingsList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.meetingsList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 3px;
+}
+
+.meetingsList::-webkit-scrollbar-thumb {
+  background: rgba(13, 148, 136, 0.3);
+  border-radius: 3px;
+}
+
+.meetingsList::-webkit-scrollbar-thumb:hover {
+  background: rgba(13, 148, 136, 0.5);
+}
+
+.meetingItem {
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.meetingItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(13, 148, 136, 0.3);
+}
+
+.meetingItem.active {
+  background: rgba(13, 148, 136, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 8px rgba(13, 148, 136, 0.2);
+}
+
+.meetingInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.meetingTitle {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+.meetingMeta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.15rem;
+}
+
+.meetingDate {
+  font-size: 0.7rem;
+  color: rgba(100, 116, 139, 0.7);
+}
+
+.deleteBtn {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: rgba(244, 63, 94, 0.6);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.meetingItem:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Main Content Area */
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .mainContent {
     grid-template-columns: 380px 1fr;
   }
 }
@@ -65,17 +222,57 @@
   color: var(--foreground);
 }
 
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputGroup label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.textInput {
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: var(--foreground);
+  transition: all 0.2s ease;
+}
+
+.textInput:focus {
+  outline: none;
+  border-color: rgba(13, 148, 136, 0.5);
+  background: rgba(13, 148, 136, 0.05);
+}
+
+.textInput::placeholder {
+  color: rgba(100, 116, 139, 0.5);
+}
+
+.uploadButtonGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
 .uploadArea {
   border: 2px dashed rgba(13, 148, 136, 0.3);
   border-radius: 14px;
-  padding: 2.5rem 1.5rem;
+  padding: 1.75rem 1rem;
   text-align: center;
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   background: rgba(13, 148, 136, 0.05);
 }
 
@@ -86,7 +283,7 @@
 }
 
 .uploadIcon {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 600;
   color: var(--primary);
   opacity: 0.8;
@@ -98,9 +295,35 @@
 }
 
 .uploadText {
-  font-size: 0.8945rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+.saveMeetingBtn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, var(--primary), #0d9488);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+  margin-top: 1rem;
+}
+
+.saveMeetingBtn:hover:not(:disabled) {
+  opacity: 0.95;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.45);
+}
+
+.saveMeetingBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .divider {
