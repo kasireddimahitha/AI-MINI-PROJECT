@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local database
+.chroma_db/
+
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Local backups
+*.backup
+chroma_db_backup/
+backups/
+

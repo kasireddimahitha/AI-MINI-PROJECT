@@ -1,0 +1,108 @@
+What was the main goal of last week’s sprint?
+
+
+Who implemented the transcript upload feature?
+
+
+Which AI model was mentioned as returning 503 errors?
+
+
+What fallback is currently used when Chroma is unavailable?
+
+
+
+
+
+
+What are the action items decided at the end of the meeting?
+
+
+By when should the next sprint tasks be completed?
+
+
+What improvements were suggested for frontend error handling?
+
+
+
+
+Why is retry logic needed for the Gemini API?
+
+
+What UX problem did users report during testing?
+
+
+Why should embeddings not be exposed to users?
+
+
+
+
+
+Who suggested logging similarity scores, and why?
+
+
+What specific improvement did Mahitha plan for response quality?
+
+
+Which model was suggested as a fallback if Gemini Flash fails?
+
+
+
+Summarise the meeting in 3 bullet points.
+
+
+Create a concise action-item list with owners.
+
+
+Write a one-paragraph executive summary of the meeting.
+
+
+
+
+“What happens if the AI model is unavailable during summarisation?”
+
+
+“Explain the current data flow from transcript upload to response generation.”
+
+
+“List any risks or blockers discussed in the meeting.” 
+
+
+
+Meeting Title: Weekly Sprint Planning – AI Notes Summariser
+Date: April 27, 2026
+Participants:
+
+Vishnu (Project Manager)
+Mahitha (Trainee Software Engineer)
+Rahul (Backend Developer)
+Ananya (UX Designer)
+
+
+Vishnu:
+Good morning everyone. Let’s start with a quick recap of last week. The main goal was to integrate the transcript upload feature and connect it with the summarisation API.
+Mahitha:
+I completed the transcript upload UI and connected it to the backend. The text chunks are generated correctly, and embeddings are created. When Chroma isn’t available, it falls back to in-memory storage.
+Rahul:
+From the backend side, the API routes are stable. However, we’re occasionally seeing 503 errors from the Gemini Flash model during peak usage.
+Vishnu:
+That’s expected given the model load. Do we have retry or fallback logic in place?
+Mahitha:
+Not yet, but I’m planning to add exponential backoff and possibly switch to gemini-1.5-pro if Flash fails.
+Ananya:
+From UX testing, users said the error message is confusing when the response fails. It just says “Failed to fetch response.”
+Vishnu:
+Alright, we should improve that. A friendly message like “AI service is busy, please try again” would be better.
+Rahul:
+Also, we should log the retrieved chunks and similarity scores for debugging. Right now, that’s only visible in the server logs.
+Vishnu:
+Good point. Let’s add internal logging but avoid exposing embeddings to users.
+Mahitha:
+For next sprint, I’ll focus on error handling, retries, and improving the response quality by adjusting chunk size.
+Vishnu:
+Sounds good. Action items are:
+
+Add retry and fallback logic for Gemini calls
+Improve frontend error messages
+Review chunking strategy
+
+Let’s target completing these by Thursday. Thanks, everyone.

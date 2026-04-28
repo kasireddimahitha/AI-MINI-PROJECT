@@ -1,0 +1,10 @@
+# Python dependencies for optional local development
+# These packages are already bundled in npm, but you can install them in a Python venv if needed
+# This project works with npm/Node.js - Python is optional
+
+langchain
+chromadb
+google-generativeai
+python-dotenv
+tiktoken
+

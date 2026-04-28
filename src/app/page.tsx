@@ -1,64 +1,228 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { Send } from "lucide-react";
+import styles from "./page.module.css";
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export default function Home() {
+  const [transcript, setTranscript] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result;
+      if (typeof text === "string") {
+        setTranscript(text);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSend = async (queryOverride?: string) => {
+    const query = queryOverride || input;
+    if (!query.trim() || !transcript.trim()) return;
+
+    const newMessages: Message[] = [...messages, { role: "user", content: query }];
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript, query, history: messages }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch response");
+      }
+
+      const data = await res.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Sorry, I encountered an error. Please ensure your Gemini API key is set." }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Basic markdown-like rendering for the chat
+  const renderMessageContent = (content: string) => {
+    const lines = content.split('\n');
+    return lines.map((line, i) => {
+      if (line.startsWith('> ')) {
+        return <blockquote key={i}>{line.replace('> ', '')}</blockquote>;
+      }
+      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        return <ul key={i}><li>{line.replace(/^[-*]\s/, '')}</li></ul>;
+      }
+      if (line.match(/^\d+\.\s/)) {
+        return <ol key={i}><li>{line.replace(/^\d+\.\s/, '')}</li></ol>;
+      }
+      if (line.trim() === '') return <br key={i} />;
+      
+      // Handle basic bold syntax
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <p key={i}>
+          {parts.map((part, j) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={j}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+          })}
+        </p>
+      );
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <h1>Meeting Notes Summariser</h1>
+      </header>
+
+      <main className={styles.main}>
+        {/* Sidebar: Transcript Upload & Edit */}
+        <section className={`glass ${styles.sidebar}`}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 500 }}>
+            Transcript Context
+          </h2>
+          
+          <div 
+            className={styles.uploadArea}
+            onClick={() => fileInputRef.current?.click()}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <p className={styles.uploadIcon}>Upload</p>
+            <p className={styles.uploadText}>Upload a meeting transcript (.txt)</p>
+            <input 
+              type="file" 
+              accept=".txt" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleFileUpload} 
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+          
+          <div className={styles.divider}>OR</div>
+
+          <div className={styles.textAreaWrapper}>
+            <label htmlFor="transcript" className={styles.uploadText} style={{ textAlign: 'left' }}>
+              Paste transcript text below:
+            </label>
+            <textarea
+              id="transcript"
+              className={styles.textArea}
+              value={transcript}
+              onChange={(e) => setTranscript(e.target.value)}
+              placeholder="E.g. [00:00] Alice: Welcome everyone. Today we need to decide on the Q3 budget..."
+            />
+          </div>
+        </section>
+
+        {/* Main Area: Chat Interface */}
+        <section className={`glass ${styles.chatArea}`}>
+          <div className={styles.chatHeader}>
+            <h2>Ask about the meeting</h2>
+          </div>
+
+          <div className={styles.chatMessages}>
+            {messages.length === 0 ? (
+              <div className={styles.emptyState}>
+                <h3>Ready to analyze your meeting</h3>
+                <p style={{ maxWidth: '400px' }}>Upload or paste a transcript, then ask questions to extract decisions, action items, or summarize discussions.</p>
+                <div className={styles.quickActions}>
+                  <button 
+                    className={styles.pillBtn} 
+                    onClick={() => handleSend("What are the key decisions made?")}
+                    disabled={!transcript.trim()}
+                  >
+                    Key Decisions
+                  </button>
+                  <button 
+                    className={styles.pillBtn} 
+                    onClick={() => handleSend("List all action items with assignees.")}
+                    disabled={!transcript.trim()}
+                  >
+                    Action Items
+                  </button>
+                </div>
+              </div>
+            ) : (
+              messages.map((m, idx) => (
+                <div key={idx} className={`${styles.message} ${styles[m.role]}`}>
+                  <div className={`${styles.avatar} ${styles[m.role]}`}>
+                    <span>{m.role === 'user' ? 'You' : 'AI'}</span>
+                  </div>
+                  <div className={styles.messageContent}>
+                    {renderMessageContent(m.content)}
+                  </div>
+                </div>
+              ))
+            )}
+            
+            {isLoading && (
+              <div className={`${styles.message} ${styles.assistant}`}>
+                <div className={`${styles.avatar} ${styles.assistant}`}>
+                  <span>AI</span>
+                </div>
+                <div className={styles.messageContent}>
+                  <div className={styles.loadingDots}>
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className={styles.chatInputWrapper}>
+            <textarea
+              className={styles.chatInput}
+              placeholder={transcript.trim() ? "Ask a question..." : "Please add a transcript first..."}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={!transcript.trim() || isLoading}
+            />
+            <button 
+              className={styles.sendButton} 
+              onClick={() => handleSend()}
+              disabled={!input.trim() || !transcript.trim() || isLoading}
+            >
+              <Send size={20} />
+            </button>
+          </div>
+        </section>
       </main>
     </div>
   );

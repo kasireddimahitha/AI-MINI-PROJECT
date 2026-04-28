@@ -1,0 +1,2 @@
+node scripts/view-db.js          # See summary
+node scripts/view-db.js export   # Export as JSON
